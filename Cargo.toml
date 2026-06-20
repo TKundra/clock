@@ -1,0 +1,23 @@
+[package]
+name = "clock"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Bootloader that puts us into 64-bit long mode and jumps to `_start`.
+bootloader = "0.9.23"
+# Wrappers around x86 instructions — we use `Port` for CMOS port I/O and `hlt`.
+x86_64 = "0.14"
+# `volatile` writes so the compiler never optimizes away VGA buffer stores.
+volatile = "0.2.6"
+# Spinlock (no OS = no real mutex) for the global VGA writer.
+spin = "0.5.2"
+# `lazy_static` so we can have a zero-heap global initialized on first use.
+lazy_static = { version = "1.0", features = ["spin_no_std"] }
+# 16550 UART driver — gives us a serial console for headless debugging/testing.
+uart_16550 = "0.2.0"
+
+# Tell `bootimage` how to launch QEMU. `base=localtime` makes the emulated
+# CMOS/RTC reflect the host's local wall-clock time, so `date` reads real time.
+[package.metadata.bootimage]
+run-args = ["-rtc", "base=localtime"]
