@@ -1,0 +1,183 @@
+[package]
+name = "clock"
+version = "0.1.0"
+
+# Rust edition controls language features and compiler behavior.
+#
+# 2021 gives:
+# - improved module handling
+# - better closures
+# - newer trait rules
+#
+# It does NOT affect the generated machine code.
+edition = "2021"
+
+[dependencies]
+
+# ==========================================================
+# Bootloader
+# ==========================================================
+#
+# A CPU cannot execute an ELF kernel directly.
+#
+# The bootloader:
+#
+#     BIOS/UEFI
+#          ↓
+#     bootloader
+#          ↓
+#     your kernel
+#
+# Responsibilities:
+#
+# - loads the kernel into memory
+# - sets up page tables
+# - enables protected mode
+# - enables long mode (64-bit)
+# - creates stack
+# - jumps to _start()
+#
+# Without this crate you would need to write your own
+# assembly bootloader.
+bootloader = "0.9.23"
+
+# ==========================================================
+# x86_64
+# ==========================================================
+#
+# Safe wrappers around x86 instructions and structures.
+#
+# Examples:
+#
+#     Port<T>
+#     hlt()
+#     cli()
+#     sti()
+#     page tables
+#     interrupt tables
+#
+# Instead of writing:
+#
+#     asm!("out dx, al");
+#
+# we can write:
+#
+#     Port::write(...)
+x86_64 = "0.14"
+
+# ==========================================================
+# volatile
+# ==========================================================
+#
+# Hardware memory cannot be optimized away.
+#
+# Example:
+#
+#     *(0xb8000) = value;
+#
+# The compiler may think:
+#
+#     "Nobody reads this memory."
+#
+# and remove the write.
+#
+# Volatile operations tell the compiler:
+#
+#     "This memory has side effects."
+#
+# Necessary for:
+#
+# - VGA memory
+# - MMIO devices
+# - hardware registers
+volatile = "0.2.6"
+
+# ==========================================================
+# spin
+# ==========================================================
+#
+# Normal mutexes sleep threads:
+#
+#     lock()
+#         ↓
+#     scheduler blocks thread
+#
+# Kernels early in boot have:
+#
+# - no scheduler
+# - no threads
+# - no processes
+#
+# Spinlocks simply wait:
+#
+#     while locked {
+#         spin
+#     }
+spin = "0.5.2"
+
+# ==========================================================
+# lazy_static
+# ==========================================================
+#
+# Rust normally requires globals to be compile-time constants:
+#
+#     static X = ...
+#
+# But things like:
+#
+#     Mutex<Writer>
+#
+# require runtime initialization.
+#
+# lazy_static creates the object the first time it is used.
+#
+# The spin_no_std feature removes the dependency on std.
+lazy_static = { version = "1.0", features = ["spin_no_std"] }
+
+# ==========================================================
+# uart_16550
+# ==========================================================
+#
+# Driver for the classic PC UART.
+#
+# COM1:
+#
+#     0x3F8
+#
+# Gives us:
+#
+# - serial console
+# - QEMU output
+# - early boot debugging
+# - panic logging
+#
+# Extremely valuable when VGA output is broken.
+uart_16550 = "0.2.0"
+
+# ==========================================================
+# bootimage configuration
+# ==========================================================
+#
+# `bootimage run`
+#
+# eventually launches:
+#
+#     qemu-system-x86_64 ...
+#
+# These arguments are automatically passed to QEMU.
+#
+# The RTC normally defaults to UTC.
+#
+# base=localtime makes QEMU expose the host's local time
+# through the CMOS RTC.
+#
+# Therefore:
+#
+#     rtc::read()
+#
+# returns your actual local wall clock.
+[package.metadata.bootimage]
+run-args = [
+    "-rtc",
+    "base=localtime"
+]

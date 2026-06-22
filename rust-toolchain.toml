@@ -1,0 +1,6 @@
+# Bare-metal builds need nightly: we cross-compile `core`/`compiler_builtins`
+# with `-Z build-std`, which is nightly-only. `rust-src` provides their source
+# and `llvm-tools-preview` provides `llvm-objcopy`, used by `bootimage`.
+[toolchain]
+channel = "nightly"
+components = ["rust-src", "llvm-tools-preview"]
