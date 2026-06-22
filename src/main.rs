@@ -4,6 +4,7 @@
 mod vga_buffer;
 mod serial;
 mod ui;
+mod rtc;
 
 use core::panic::PanicInfo;
 
@@ -30,7 +31,91 @@ pub extern "C" fn _start() -> ! {
         ui::draw_frame(&mut writer);
     } // lock released here
 
-    loop {}
+    run_clock()
+}
+
+/// Main kernel loop.
+///
+/// The function returns `!` because kernels never exit.
+///
+/// We currently do not have:
+///
+/// - timer interrupts
+/// - task scheduling
+/// - event loops
+///
+/// so we repeatedly poll the RTC.
+fn run_clock() -> ! {
+
+    // Previous timestamp.
+    //
+    // Initially there is no previous value.
+    let mut last: Option<rtc::DateTime> = None;
+
+    // Controls the blinking indicator.
+    let mut blink = false;
+
+    loop {
+        // Read current RTC time.
+        let now = rtc::read();
+
+        // Only redraw when the second changes.
+        //
+        // This avoids:
+        //
+        // - unnecessary VGA writes
+        // - flickering
+        // - serial spam
+        if Some(now) != last {
+
+            blink = !blink;
+
+            {
+                let mut writer =
+                    vga_buffer::WRITER.lock();
+
+                ui::draw_dynamic(
+                    &mut writer,
+                    &now,
+                    blink,
+                );
+            }
+
+            // Print the timestamp to COM1.
+            //
+            // Benefits:
+            //
+            // - debugging
+            // - headless operation
+            // - proof the RTC is advancing
+            serial_println!(
+                "{}-{:02}-{:02}T{:02}:{:02}:{:02}",
+                now.year,
+                now.month,
+                now.day,
+                now.hour,
+                now.minute,
+                now.second
+            );
+
+            last = Some(now);
+        }
+
+        // Small delay.
+        //
+        // Without this loop we would read the CMOS
+        // thousands or millions of times per second.
+        //
+        // spin_loop() tells the CPU:
+        //
+        //     "I am intentionally busy-waiting."
+        //
+        // Some processors can optimize power usage
+        // while spinning.
+        for _ in 0..50_000 {
+            core::hint::spin_loop();
+        }
+    }
 }
 
 /// Panic handler.

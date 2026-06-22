@@ -274,3 +274,138 @@ impl Write for FmtBuf {
         Ok(())
     }
 }
+
+
+
+/// Redraw the changing data.
+///
+/// Called once every second.
+///
+/// Only dynamic rows are updated:
+///
+/// - date
+/// - time
+/// - ISO timestamp
+// - heartbeat indicator
+pub fn draw_dynamic(
+    w: &mut Writer,
+    dt: &crate::rtc::DateTime,
+    blink: bool,
+) {
+    let weekday =
+        crate::rtc::weekday_full(
+            crate::rtc::day_of_week(dt)
+        );
+
+    // ==================================================
+    // Date:
+    //
+    //     Friday, 19 June 2026
+    // ==================================================
+
+    clear_inner_row(w, ROW_DATE);
+
+    let mut date = FmtBuf::new();
+
+    let _ = write!(
+        date,
+        "{}, {} {} {}",
+        weekday,
+        dt.day,
+        crate::rtc::month_full(dt.month),
+        dt.year
+    );
+
+    put_centered(
+        w,
+        ROW_DATE,
+        date.as_str(),
+        Color::Yellow,
+    );
+
+    // ==================================================
+    // Time:
+    //
+    //     15 : 49 : 21
+    // ==================================================
+
+    let mut time = FmtBuf::new();
+
+    let _ = write!(
+        time,
+        "{:02} : {:02} : {:02}",
+        dt.hour,
+        dt.minute,
+        dt.second
+    );
+
+    put_centered(
+        w,
+        ROW_TIME,
+        time.as_str(),
+        Color::LightGreen,
+    );
+
+    // ==================================================
+    // ISO-8601 timestamp.
+    // ==================================================
+
+    let mut iso = FmtBuf::new();
+
+    let _ = write!(
+        iso,
+        "{}-{:02}-{:02}T{:02}:{:02}:{:02}",
+        dt.year,
+        dt.month,
+        dt.day,
+        dt.hour,
+        dt.minute,
+        dt.second
+    );
+
+    put_centered(
+        w,
+        ROW_ISO,
+        iso.as_str(),
+        Color::LightGray,
+    );
+
+    // ==================================================
+    // Heartbeat indicator.
+    //
+    // The blinking dot proves the kernel is still
+    // running and updating.
+    // ==================================================
+
+    clear_inner_row(w, ROW_FOOT);
+
+    let label =
+        "live reading CMOS RTC @ 0x70/0x71 ";
+
+    let col =
+        INNER_LEFT +
+            (INNER_WIDTH - (label.len() + 1)) / 2;
+
+    w.put_str_at(
+        ROW_FOOT,
+        col,
+        label,
+        Color::LightGray,
+        BG,
+    );
+
+    let dot_color =
+        if blink {
+            Color::LightGreen
+        } else {
+            BG
+        };
+
+    w.put_at(
+        ROW_FOOT,
+        col + label.len(),
+        BULLET,
+        dot_color,
+        BG,
+    );
+}
