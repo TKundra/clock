@@ -3,6 +3,7 @@
 
 mod vga_buffer;
 mod serial;
+mod ui;
 
 use core::panic::PanicInfo;
 
@@ -15,6 +16,19 @@ pub extern "C" fn _start() -> ! {
     serial_println!(
         "clock kernel — live bare-metal RTC clock"
     );
+
+    // Draw static parts of the UI:
+    //
+    // - border
+    // - title
+    // - background
+    //
+    // These never change.
+    {
+        // Acquire exclusive access to VGA memory.
+        let mut writer = vga_buffer::WRITER.lock();
+        ui::draw_frame(&mut writer);
+    } // lock released here
 
     loop {}
 }
