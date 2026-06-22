@@ -226,3 +226,51 @@ pub fn draw_frame(w: &mut Writer) {
         Color::White,
     );
 }
+
+/// Small formatting buffer.
+///
+/// The kernel currently has no heap allocation,
+/// so we cannot use: String::new()
+///
+/// Instead we reserve 80 bytes on the stack.
+/// The standard formatting macros: write!(...)
+///
+/// can write into this fixed buffer.
+struct FmtBuf {
+    buf: [u8; 80],
+    len: usize,
+}
+
+impl FmtBuf {
+    fn new() -> Self {
+        FmtBuf {
+            buf: [0; 80],
+            len: 0,
+        }
+    }
+
+    /// Interpret the written bytes as UTF-8 text.
+    fn as_str(&self) -> &str {
+        core::str::from_utf8(&self.buf[..self.len]).unwrap_or("")
+    }
+}
+
+/// Allow:  write!(buffer, "{}", value)
+/// The formatting machinery repeatedly calls write_str().
+impl Write for FmtBuf {
+    fn write_str(
+        &mut self,
+        s: &str,
+    ) -> core::fmt::Result {
+
+        for &b in s.as_bytes() {
+            // Prevent buffer overflow.
+            if self.len < self.buf.len() {
+                self.buf[self.len] = b;
+                self.len += 1;
+            }
+        }
+
+        Ok(())
+    }
+}
