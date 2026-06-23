@@ -193,6 +193,8 @@ pub fn draw_frame(w: &mut Writer) {
     //     ╠══════════╣
     let right = BOX_LEFT + BOX_W - 1;
 
+    // place connecting ends (left)
+    // ╠
     w.put_at(
         ROW_DIVIDER,
         BOX_LEFT,
@@ -201,6 +203,8 @@ pub fn draw_frame(w: &mut Writer) {
         BG,
     );
 
+    // place connecting ends (right)
+    // ╣
     w.put_at(
         ROW_DIVIDER,
         right,
@@ -209,6 +213,8 @@ pub fn draw_frame(w: &mut Writer) {
         BG,
     );
 
+    // put a line (divider) between markers
+    // ══════════
     for c in (BOX_LEFT + 1)..right {
         w.put_at(
             ROW_DIVIDER,
@@ -219,6 +225,8 @@ pub fn draw_frame(w: &mut Writer) {
         );
     }
 
+    // place a text above that line (divider)
+    // ╠══════════╣
     put_centered(
         w,
         ROW_TITLE,
@@ -275,8 +283,6 @@ impl Write for FmtBuf {
     }
 }
 
-
-
 /// Redraw the changing data.
 ///
 /// Called once every second.
@@ -324,9 +330,7 @@ pub fn draw_dynamic(
     );
 
     // ==================================================
-    // Time:
-    //
-    //     15 : 49 : 21
+    // Time: 15 : 49 : 21
     // ==================================================
 
     let mut time = FmtBuf::new();
